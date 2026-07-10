@@ -12,6 +12,7 @@ order-monolith/
 ├── mvnw
 ├── mvnw.cmd
 ├── pom.xml
+├── Makefile
 ├── src
 │   ├── main
 │   │   ├── java
@@ -52,6 +53,7 @@ order-monolith/
 |  3.3  |  Added `.dockerignore` to keep build output, IDE files, and old H2 data out of the build context  | .dockerignore  | `509f093`  |
 |  3.4  |  Added the Maven wrapper (`mvnw`, `.mvn/`) so the Docker build doesn't depend on a local Maven install  | mvnw, mvnw.cmd, .mvn/  | `dbea32b`  |
 |  3.5  |  Fixed the Dockerfile's jar path to match the actual build artifact (`order-monolith-0.0.1-SNAPSHOT.jar`, not the hardcoded `1.0.0`) via a wildcard  | Dockerfile  | `902fce4`  |
+|  4.1  |  Added health check endpoints via Spring Actuator, with liveness/readiness probes enabled and health details hidden from unauthenticated callers  | pom.xml, application.properties  | `1846640`  |
 
 # Antipatterns
 
@@ -60,7 +62,7 @@ order-monolith/
 |  1  |  Config hardcoded in properties, no secrets management  | application.properties  | Addressed — values externalized to environment variables (see Changes #1.1, #1.2)  |
 |  2  |  Local file DB (H2), not externalized/managed  | application.properties  | Addressed — switched to Postgres (see Changes #2.2)  |
 |  3  | In-memory inventory state — won't survive restart, can't scale horizontally   | InventoryService | Addressed — backed by Postgres via JPA with optimistic locking (see Changes #2.1, #2.3)  |
-|  4  |  No health check endpoints  | whole app  |  |
+|  4  |  No health check endpoints  | whole app  | Addressed — Spring Actuator health/liveness/readiness probes (see Changes #4.1)  |
 |  5  |  Synchronous blocking call to payment gateway, no timeout/retry/circuit breaker  | PaymentService  |  |
 |  6  |  Notification is inline/blocking instead of async/event-driven  | NotificationService, OrderService  |  |
 |  7  | One giant @Transactional method spanning inventory+payment+notification — no compensation/saga pattern   | OrderService.placeOrder  |  |
