@@ -6,17 +6,36 @@ This is an order monolith service which is having multiple anti-patterns. We wil
 
 ```
 order-monolith/
+.
+├── Dockerfile
+├── README.md
+├── mvnw
+├── mvnw.cmd
 ├── pom.xml
-├── src/main/java/com/example/order/
-│   ├── OrderMonolithApplication.java
-│   ├── model/Order.java
-│   ├── controller/OrderController.java
-│   ├── repository/OrderRepository.java
-│   ├── service/OrderService.java
-│   ├── service/InventoryService.java
-│   ├── service/PaymentService.java
-│   ├── service/NotificationService.java
-└── src/main/resources/application.properties
+├── src
+│   ├── main
+│   │   ├── java
+│   │   │   └── com
+│   │   │       └── example
+│   │   │           └── order
+│   │   │               ├── OrderMonolithApplication.java
+│   │   │               ├── config
+│   │   │               │   └── PaymentGatewayProperties.java
+│   │   │               ├── controller
+│   │   │               │   └── OrderController.java
+│   │   │               ├── model
+│   │   │               │   ├── InventoryItem.java
+│   │   │               │   └── Order.java
+│   │   │               ├── repository
+│   │   │               │   ├── InventoryRepository.java
+│   │   │               │   └── OrderRepository.java
+│   │   │               └── service
+│   │   │                   ├── InventoryService.java
+│   │   │                   ├── NotificationService.java
+│   │   │                   ├── OrderService.java
+│   │   │                   └── PaymentService.java
+│   │   └── resources
+│   │       └── application.properties
 ```
 
 # Changes
