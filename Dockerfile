@@ -19,7 +19,7 @@ WORKDIR /app
 # Non-root user — don't run as root in a container
 RUN groupadd -r appgroup && useradd -r -g appgroup appuser
 
-COPY --from=build /app/target/order-monolith-1.0.0.jar app.jar
+COPY --from=build /app/target/order-monolith-*.jar app.jar
 
 USER appuser
 EXPOSE 8080
