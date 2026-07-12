@@ -64,6 +64,9 @@ order-monolith/
 |  7.1  |  Added Kubernetes manifests: Namespace, Deployment (3 replicas, liveness/readiness probes wired to Actuator, resource requests/limits, graceful termination grace period matched to the app's shutdown timeout), Service, ConfigMap, Secret, HPA (CPU/memory-based, 3–10 replicas), and a PodDisruptionBudget (`minAvailable: 2`)  | k8s/  | `8029b75`  |
 |  8.1  |  Added a CI workflow that runs `mvnw test` against a real Postgres service container (not H2) on every PR/push to main, then builds the jar  | .github/workflows/ci.yml  | `5537534`  |
 |  8.2  |  Added a CD workflow that builds/pushes the image to GHCR on merge to main, updates the Deployment's image via `kubectl`, waits for rollout, and automatically rolls back on failure  | .github/workflows/cd.yml  | `374dd50`  |
+|  9.1  |  Made order placement idempotent via a required `Idempotency-Key` header: a retried request with the same key returns the original order instead of re-processing, with a unique DB constraint as the concurrency safety net  | controller/OrderController.java, model/Order.java, repository/OrderRepository.java, service/OrderService.java  | `1eb9172`  |
+|  9.2  |  Threaded the idempotency key through to the payment gateway call so retried payment charges can be deduplicated on the gateway side too  | service/PaymentService.java, service/OrderService.java  | `375c703`  |
+|  10.1  |  Replaced the single `@Transactional placeOrder` with a saga: `OrderSagaOrchestrator` runs create → reserve inventory → charge payment → mark paid → notify → mark shipped as independently-committed steps, and explicitly compensates (releases inventory) if payment fails after reservation. Per-step `@Transactional` methods live in a separate `OrderPersistenceSteps` bean, since Spring's proxy-based AOP can't intercept self-invocation (`this.method()`) — calling them directly from within the orchestrator would silently skip the transaction. `OrderController` now wires the orchestrator, and the old `OrderService` is removed as fully superseded  | service/OrderSagaOrchestrator.java, service/OrderPersistenceSteps.java, controller/OrderController.java  | `c45ad92`  |
 
 # Antipatterns
 
@@ -75,9 +78,9 @@ order-monolith/
 |  4  |  No health check endpoints  | whole app  | Addressed — Spring Actuator health/liveness/readiness probes (see Changes #4.1)  |
 |  5  |  Synchronous blocking call to payment gateway, no timeout/retry/circuit breaker  | PaymentService  | Addressed — circuit breaker, retry with backoff, and time limiter via Resilience4j (see Changes #5.1–#5.3)  |
 |  6  |  Notification is inline/blocking instead of async/event-driven  | NotificationService, OrderService  | Addressed — `@Async` with retry, off the request's critical path (see Changes #5.4)  |
-|  7  | One giant @Transactional method spanning inventory+payment+notification — no compensation/saga pattern   | OrderService.placeOrder  |  |
+|  7  | One giant @Transactional method spanning inventory+payment+notification — no compensation/saga pattern   | OrderService.placeOrder  | Addressed — saga orchestrator with per-step local transactions and explicit compensation on payment failure (see Changes #10.1)  |
 |  8  |  No structured logging, no correlation IDs, no metrics/tracing  |  whole app | Addressed — structured JSON logs with traceId/spanId, OTel tracing, and Prometheus metrics (see Changes #6.1–#6.3)  |
 |  9  |  No containerization (no Dockerfile)  | whole repo  | Addressed — multi-stage Dockerfile with non-root user and graceful shutdown (see Changes #3.1–#3.5)  |
 |  10  |  No CI/CD, no IaC  |  whole repo | Addressed — Kubernetes manifests for IaC (see Changes #7.1) and GitHub Actions CI/CD workflows (see Changes #8.1, #8.2)  |
-|  11  |  Not idempotent — retrying a failed request double-charges/double-reserves  | OrderService.placeOrder  |  |
+|  11  |  Not idempotent — retrying a failed request double-charges/double-reserves  | OrderService.placeOrder  | Addressed — `Idempotency-Key`-based dedup at the order layer and threaded through to the payment gateway (see Changes #9.1, #9.2)  |
 |  12  | Single deployable — Order, Inventory, Payment, Notification concerns all coupled in one JAR   |  whole repo |  |

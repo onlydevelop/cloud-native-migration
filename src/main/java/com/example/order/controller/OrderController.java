@@ -9,13 +9,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.order.model.Order;
-import com.example.order.service.OrderService;
+import com.example.order.service.OrderSagaOrchestrator;
 
 @RestController
 @RequestMapping("/orders")
 public class OrderController {
 
-    @Autowired private OrderService orderService;
+    @Autowired private OrderSagaOrchestrator orderSagaOrchestrator;
 
     @PostMapping
     public ResponseEntity<Order> create(@RequestHeader("Idempotency-Key") String idempotencyKey,
@@ -23,7 +23,7 @@ public class OrderController {
                                      @RequestParam String sku,
                                      @RequestParam int quantity,
                                      @RequestParam double unitPrice) {
-    Order order = orderService.placeOrder(idempotencyKey, customerId, sku, quantity, unitPrice);
+    Order order = orderSagaOrchestrator.placeOrder(idempotencyKey, customerId, sku, quantity, unitPrice);
     return ResponseEntity.status(order.getStatus().equals("FAILED") ? 422 : 200).body(order);
 }
 }
