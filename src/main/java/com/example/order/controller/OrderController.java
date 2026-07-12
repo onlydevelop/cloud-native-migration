@@ -1,21 +1,29 @@
 package com.example.order.controller;
 
-import com.example.order.model.Order;
-import com.example.order.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.example.order.model.Order;
+import com.example.order.service.OrderSagaOrchestrator;
 
 @RestController
 @RequestMapping("/orders")
 public class OrderController {
 
-    @Autowired private OrderService orderService;
+    @Autowired private OrderSagaOrchestrator orderSagaOrchestrator;
 
     @PostMapping
-    public Order create(@RequestParam String customerId,
-                         @RequestParam String sku,
-                         @RequestParam int quantity,
-                         @RequestParam double unitPrice) {
-        return orderService.placeOrder(customerId, sku, quantity, unitPrice);
-    }
+    public ResponseEntity<Order> create(@RequestHeader("Idempotency-Key") String idempotencyKey,
+                                     @RequestParam String customerId,
+                                     @RequestParam String sku,
+                                     @RequestParam int quantity,
+                                     @RequestParam double unitPrice) {
+    Order order = orderSagaOrchestrator.placeOrder(idempotencyKey, customerId, sku, quantity, unitPrice);
+    return ResponseEntity.status(order.getStatus().equals("FAILED") ? 422 : 200).body(order);
+}
 }

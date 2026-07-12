@@ -1,32 +1,44 @@
 package com.example.order.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.Map;
+import org.springframework.transaction.annotation.Transactional;
 
-// In-memory "inventory" — lives and dies with this JVM. No persistence, no locking across instances.
+import com.example.order.model.InventoryItem;
+import com.example.order.repository.InventoryRepository;
+
 @Service
 public class InventoryService {
 
-    private final Map<String, Integer> stock = new ConcurrentHashMap<>();
+    @Autowired private InventoryRepository inventoryRepository;
 
-    public InventoryService() {
-        stock.put("SKU-100", 50);
-        stock.put("SKU-200", 10);
-    }
-
+    // Now backed by the DB row + @Version, so concurrent instances
+    // can't both "succeed" reserving the same last unit.
+    @Transactional
     public boolean reserve(String sku, int qty) {
-        synchronized (this) {
-            Integer available = stock.get(sku);
-            if (available == null || available < qty) {
-                return false;
-            }
-            stock.put(sku, available - qty);
-            return true;
+        InventoryItem item = inventoryRepository.findById(sku)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown SKU: " + sku));
+
+        if (item.getAvailableQty() < qty) {
+            return false;
         }
+
+        item.setAvailableQty(item.getAvailableQty() - qty);
+        try {
+            inventoryRepository.save(item);
+        } catch (OptimisticLockingFailureException e) {
+            // another instance/thread updated this row first — caller should retry
+            return false;
+        }
+        return true;
     }
 
+    @Transactional
     public void release(String sku, int qty) {
-        stock.merge(sku, qty, Integer::sum);
+        InventoryItem item = inventoryRepository.findById(sku)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown SKU: " + sku));
+        item.setAvailableQty(item.getAvailableQty() + qty);
+        inventoryRepository.save(item);
     }
 }

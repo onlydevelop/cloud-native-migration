@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: order-monolith-config
+  namespace: order-system
+data:
+  DB_URL: "jdbc:postgresql://order-postgres:5432/orderdb"
+  DB_DRIVER: "org.postgresql.Driver"
+  SERVER_PORT: "8080"
+  PAYMENT_GATEWAY_URL: "http://payment-mock:9001/charge"
+  PAYMENT_GATEWAY_TIMEOUT_MS: "2000"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318/v1/traces"
