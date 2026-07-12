@@ -2,6 +2,8 @@ package com.example.order.service;
 
 import java.util.concurrent.CompletableFuture;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -10,6 +12,8 @@ import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 
 @Service
 public class PaymentService {
+
+    private static final Logger log = LoggerFactory.getLogger(PaymentService.class);
 
     // TimeLimiter requires the method to return a CompletableFuture/async type.
     // Order of annotations matters: TimeLimiter wraps innermost (per-call),
@@ -35,6 +39,8 @@ public class PaymentService {
         // Fail closed: treat as declined, never silently treat a failed/unknown
         // payment call as success. This is a business-correctness decision, not
         // just a technical one.
+        log.warn("Payment fallback triggered for customer={} amount={} reason={}",
+                customerId, amount, t.getMessage());
         return CompletableFuture.completedFuture(false);
     }
 }
