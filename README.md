@@ -62,6 +62,8 @@ order-monolith/
 |  6.2  |  Replaced `System.out`/`System.err` calls with structured slf4j logging, including order status transition and payment-fallback log lines  | service/OrderService.java, service/PaymentService.java, service/NotificationService.java  | `73f627e`  |
 |  6.3  |  Added an `orders.processed` Prometheus counter (tagged by status) recorded at each terminal transition in `placeOrder`, and exposed the `prometheus` actuator endpoint  | pom.xml, application.properties, service/OrderService.java  | `6916980`  |
 |  7.1  |  Added Kubernetes manifests: Namespace, Deployment (3 replicas, liveness/readiness probes wired to Actuator, resource requests/limits, graceful termination grace period matched to the app's shutdown timeout), Service, ConfigMap, Secret, HPA (CPU/memory-based, 3–10 replicas), and a PodDisruptionBudget (`minAvailable: 2`)  | k8s/  | `8029b75`  |
+|  8.1  |  Added a CI workflow that runs `mvnw test` against a real Postgres service container (not H2) on every PR/push to main, then builds the jar  | .github/workflows/ci.yml  | `5537534`  |
+|  8.2  |  Added a CD workflow that builds/pushes the image to GHCR on merge to main, updates the Deployment's image via `kubectl`, waits for rollout, and automatically rolls back on failure  | .github/workflows/cd.yml  | `374dd50`  |
 
 # Antipatterns
 
@@ -76,6 +78,6 @@ order-monolith/
 |  7  | One giant @Transactional method spanning inventory+payment+notification — no compensation/saga pattern   | OrderService.placeOrder  |  |
 |  8  |  No structured logging, no correlation IDs, no metrics/tracing  |  whole app | Addressed — structured JSON logs with traceId/spanId, OTel tracing, and Prometheus metrics (see Changes #6.1–#6.3)  |
 |  9  |  No containerization (no Dockerfile)  | whole repo  | Addressed — multi-stage Dockerfile with non-root user and graceful shutdown (see Changes #3.1–#3.5)  |
-|  10  |  No CI/CD, no IaC  |  whole repo | Partially addressed — Kubernetes manifests cover the IaC half (see Changes #7.1); CI/CD still missing  |
+|  10  |  No CI/CD, no IaC  |  whole repo | Addressed — Kubernetes manifests for IaC (see Changes #7.1) and GitHub Actions CI/CD workflows (see Changes #8.1, #8.2)  |
 |  11  |  Not idempotent — retrying a failed request double-charges/double-reserves  | OrderService.placeOrder  |  |
 |  12  | Single deployable — Order, Inventory, Payment, Notification concerns all coupled in one JAR   |  whole repo |  |
