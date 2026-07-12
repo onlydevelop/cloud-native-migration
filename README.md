@@ -4,6 +4,24 @@ This is an order monolith service which is having multiple anti-patterns. We wil
 
 # Project Structure
 
+## Initial structure
+
+```
+order-monolith/
+├── pom.xml
+├── src/main/java/com/example/order/
+│   ├── OrderMonolithApplication.java
+│   ├── model/Order.java
+│   ├── controller/OrderController.java
+│   ├── repository/OrderRepository.java
+│   ├── service/OrderService.java
+│   ├── service/InventoryService.java
+│   ├── service/PaymentService.java
+│   ├── service/NotificationService.java
+└── src/main/resources/application.properties
+```
+
+## Final structure
 ```
 order-monolith/
 .
