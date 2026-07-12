@@ -9,6 +9,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.order.model.Order;
 import com.example.order.repository.OrderRepository;
 
+import io.micrometer.core.instrument.MeterRegistry;
+
 @Service
 public class OrderService {
 
@@ -18,6 +20,7 @@ public class OrderService {
     @Autowired private InventoryService inventoryService;
     @Autowired private PaymentService paymentService;
     @Autowired private NotificationService notificationService;
+    @Autowired private MeterRegistry meterRegistry;
 
     // One giant transactional method doing inventory + payment + notification + persistence.
     // Any downstream failure (email, payment) risks rolling back or half-completing the order.
@@ -34,6 +37,7 @@ public class OrderService {
         boolean reserved = inventoryService.reserve(sku, quantity);
         if (!reserved) {
             order.setStatus("FAILED");
+            recordOrderOutcome("FAILED");
             log.info("Order status transition orderId={} status={}", order.getId(), order.getStatus());
             orderRepository.save(order);
             return order;
@@ -49,20 +53,27 @@ public class OrderService {
         if (!charged) {
             inventoryService.release(sku, quantity);
             order.setStatus("FAILED");
+            recordOrderOutcome("FAILED");
             log.info("Order status transition orderId={} status={}", order.getId(), order.getStatus());
             orderRepository.save(order);
             return order;
         }
 
         order.setStatus("PAID");
+        recordOrderOutcome("PAID");
         log.info("Order status transition orderId={} status={}", order.getId(), order.getStatus());
         orderRepository.save(order);
 
         notificationService.sendConfirmation(customerId, order.getId()); // fire-and-forget now
 
         order.setStatus("SHIPPED");
+        recordOrderOutcome("SHIPPED");
         log.info("Order status transition orderId={} status={}", order.getId(), order.getStatus());
         orderRepository.save(order);
         return order;
+    }
+
+    private void recordOrderOutcome(String status) {
+        meterRegistry.counter("orders.processed", "status", status).increment();
     }
 }
