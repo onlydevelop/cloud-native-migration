@@ -61,7 +61,7 @@ public class OrderService {
 
         boolean charged;
         try {
-            charged = paymentService.charge(customerId, order.getTotalPrice()).get(); // blocks up to timeout+retries
+            charged = paymentService.charge(idempotencyKey, customerId, order.getTotalPrice()).get(); // blocks up to timeout+retries
         } catch (Exception e) {
             charged = false;
         }
