@@ -9,6 +9,14 @@ order-monolith/
 .
 ├── Dockerfile
 ├── README.md
+├── k8s
+│   ├── configmap.yaml
+│   ├── deployment.yaml
+│   ├── hpa.yaml
+│   ├── namespace.yaml
+│   ├── pdb.yaml
+│   ├── secret.yaml
+│   └── service.yaml
 ├── mvnw
 ├── mvnw.cmd
 ├── pom.xml
@@ -33,10 +41,12 @@ order-monolith/
 │   │   │               └── service
 │   │   │                   ├── InventoryService.java
 │   │   │                   ├── NotificationService.java
-│   │   │                   ├── OrderService.java
+│   │   │                   ├── OrderPersistenceSteps.java
+│   │   │                   ├── OrderSagaOrchestrator.java
 │   │   │                   └── PaymentService.java
 │   │   └── resources
-│   │       └── application.properties
+│   │       ├── application.properties
+│   │       └── logback-spring.xml
 ```
 
 # Changes
@@ -93,4 +103,4 @@ order-monolith/
 |  9  |  No containerization (no Dockerfile)  | whole repo  | Addressed — multi-stage Dockerfile with non-root user and graceful shutdown (see Changes #3.1–#3.5)  |
 |  10  |  No CI/CD, no IaC  |  whole repo | Addressed — Kubernetes manifests for IaC (see Changes #7.1) and GitHub Actions CI/CD workflows (see Changes #8.1, #8.2)  |
 |  11  |  Not idempotent — retrying a failed request double-charges/double-reserves  | OrderService.placeOrder  | Addressed — `Idempotency-Key`-based dedup at the order layer and threaded through to the payment gateway (see Changes #9.1, #9.2)  |
-|  12  | Single deployable — Order, Inventory, Payment, Notification concerns all coupled in one JAR   |  whole repo |  |
+|  12  | Single deployable — Order, Inventory, Payment, Notification concerns all coupled in one JAR   |  whole repo | Abandoned |
