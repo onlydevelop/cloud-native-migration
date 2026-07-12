@@ -54,6 +54,10 @@ order-monolith/
 |  3.4  |  Added the Maven wrapper (`mvnw`, `.mvn/`) so the Docker build doesn't depend on a local Maven install  | mvnw, mvnw.cmd, .mvn/  | `dbea32b`  |
 |  3.5  |  Fixed the Dockerfile's jar path to match the actual build artifact (`order-monolith-0.0.1-SNAPSHOT.jar`, not the hardcoded `1.0.0`) via a wildcard  | Dockerfile  | `902fce4`  |
 |  4.1  |  Added health check endpoints via Spring Actuator, with liveness/readiness probes enabled and health details hidden from unauthenticated callers  | pom.xml, application.properties  | `1846640`  |
+|  5.1  |  Added Resilience4j (`resilience4j-spring-boot3`) and the Spring AOP starter it needs for annotation-based aspects  | pom.xml  | `251730f`  |
+|  5.2  |  Configured circuit breaker, retry (exponential backoff), and time limiter instances for the payment gateway, plus a lighter retry-only instance for notifications  | application.properties  | `97f5449`  |
+|  5.3  |  Wrapped the payment gateway call with `@CircuitBreaker`/`@Retry`/`@TimeLimiter`; fails closed (declined) on exhausted retries or an open circuit instead of guessing at an unknown outcome  | service/PaymentService.java, service/OrderService.java  | `54a911a`, `850b9bc`  |
+|  5.4  |  Made notification sending `@Async` with `@Retry` so a slow/failing SMTP call no longer blocks the order response; `@EnableAsync` added since Spring silently ignores `@Async` without it  | service/NotificationService.java, OrderMonolithApplication.java  | `dea20a6`  |
 
 # Antipatterns
 
@@ -63,8 +67,8 @@ order-monolith/
 |  2  |  Local file DB (H2), not externalized/managed  | application.properties  | Addressed — switched to Postgres (see Changes #2.2)  |
 |  3  | In-memory inventory state — won't survive restart, can't scale horizontally   | InventoryService | Addressed — backed by Postgres via JPA with optimistic locking (see Changes #2.1, #2.3)  |
 |  4  |  No health check endpoints  | whole app  | Addressed — Spring Actuator health/liveness/readiness probes (see Changes #4.1)  |
-|  5  |  Synchronous blocking call to payment gateway, no timeout/retry/circuit breaker  | PaymentService  |  |
-|  6  |  Notification is inline/blocking instead of async/event-driven  | NotificationService, OrderService  |  |
+|  5  |  Synchronous blocking call to payment gateway, no timeout/retry/circuit breaker  | PaymentService  | Addressed — circuit breaker, retry with backoff, and time limiter via Resilience4j (see Changes #5.1–#5.3)  |
+|  6  |  Notification is inline/blocking instead of async/event-driven  | NotificationService, OrderService  | Addressed — `@Async` with retry, off the request's critical path (see Changes #5.4)  |
 |  7  | One giant @Transactional method spanning inventory+payment+notification — no compensation/saga pattern   | OrderService.placeOrder  |  |
 |  8  |  No structured logging, no correlation IDs, no metrics/tracing  |  whole app |  |
 |  9  |  No containerization (no Dockerfile)  | whole repo  | Addressed — multi-stage Dockerfile with non-root user and graceful shutdown (see Changes #3.1–#3.5)  |

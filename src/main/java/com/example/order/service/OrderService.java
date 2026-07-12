@@ -1,10 +1,11 @@
 package com.example.order.service;
 
-import com.example.order.model.Order;
-import com.example.order.repository.OrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.example.order.model.Order;
+import com.example.order.repository.OrderRepository;
 
 @Service
 public class OrderService {
@@ -33,7 +34,13 @@ public class OrderService {
             return order;
         }
 
-        boolean charged = paymentService.charge(customerId, order.getTotalPrice());
+        boolean charged;
+        try {
+            charged = paymentService.charge(customerId, order.getTotalPrice()).get(); // blocks up to timeout+retries
+        } catch (Exception e) {
+            charged = false;
+        }
+
         if (!charged) {
             inventoryService.release(sku, quantity);
             order.setStatus("FAILED");
@@ -44,8 +51,7 @@ public class OrderService {
         order.setStatus("PAID");
         orderRepository.save(order);
 
-        // Synchronous, in-request notification — blocks the caller.
-        notificationService.sendConfirmation(customerId, order.getId());
+        notificationService.sendConfirmation(customerId, order.getId()); // fire-and-forget now
 
         order.setStatus("SHIPPED");
         orderRepository.save(order);
