@@ -1,5 +1,7 @@
 package com.example.order.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -9,6 +11,8 @@ import com.example.order.repository.OrderRepository;
 
 @Service
 public class OrderService {
+
+    private static final Logger log = LoggerFactory.getLogger(OrderService.class);
 
     @Autowired private OrderRepository orderRepository;
     @Autowired private InventoryService inventoryService;
@@ -30,6 +34,7 @@ public class OrderService {
         boolean reserved = inventoryService.reserve(sku, quantity);
         if (!reserved) {
             order.setStatus("FAILED");
+            log.info("Order status transition orderId={} status={}", order.getId(), order.getStatus());
             orderRepository.save(order);
             return order;
         }
@@ -44,16 +49,19 @@ public class OrderService {
         if (!charged) {
             inventoryService.release(sku, quantity);
             order.setStatus("FAILED");
+            log.info("Order status transition orderId={} status={}", order.getId(), order.getStatus());
             orderRepository.save(order);
             return order;
         }
 
         order.setStatus("PAID");
+        log.info("Order status transition orderId={} status={}", order.getId(), order.getStatus());
         orderRepository.save(order);
 
         notificationService.sendConfirmation(customerId, order.getId()); // fire-and-forget now
 
         order.setStatus("SHIPPED");
+        log.info("Order status transition orderId={} status={}", order.getId(), order.getStatus());
         orderRepository.save(order);
         return order;
     }
