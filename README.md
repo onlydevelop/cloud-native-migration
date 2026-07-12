@@ -1,6 +1,6 @@
 # Order Monolith
 
-This is an order monolith service which is having multiple anti-patterns. We will make this service to a cloud-native app. 
+Started with a premise application, order-monolith service which is having multiple anti-patterns. We will make this service to a cloud-native app. 
 
 # Project Structure
 
