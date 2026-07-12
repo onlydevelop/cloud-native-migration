@@ -58,6 +58,9 @@ order-monolith/
 |  5.2  |  Configured circuit breaker, retry (exponential backoff), and time limiter instances for the payment gateway, plus a lighter retry-only instance for notifications  | application.properties  | `97f5449`  |
 |  5.3  |  Wrapped the payment gateway call with `@CircuitBreaker`/`@Retry`/`@TimeLimiter`; fails closed (declined) on exhausted retries or an open circuit instead of guessing at an unknown outcome  | service/PaymentService.java, service/OrderService.java  | `54a911a`, `850b9bc`  |
 |  5.4  |  Made notification sending `@Async` with `@Retry` so a slow/failing SMTP call no longer blocks the order response; `@EnableAsync` added since Spring silently ignores `@Async` without it  | service/NotificationService.java, OrderMonolithApplication.java  | `dea20a6`  |
+|  6.1  |  Added structured JSON logging (`logstash-logback-encoder`) with traceId/spanId on every line, plus OTel tracing via Micrometer's tracing bridge and OTLP exporter  | pom.xml, application.properties, logback-spring.xml  | `7b7d1e4`  |
+|  6.2  |  Replaced `System.out`/`System.err` calls with structured slf4j logging, including order status transition and payment-fallback log lines  | service/OrderService.java, service/PaymentService.java, service/NotificationService.java  | `73f627e`  |
+|  6.3  |  Added an `orders.processed` Prometheus counter (tagged by status) recorded at each terminal transition in `placeOrder`, and exposed the `prometheus` actuator endpoint  | pom.xml, application.properties, service/OrderService.java  | `6916980`  |
 
 # Antipatterns
 
@@ -70,7 +73,7 @@ order-monolith/
 |  5  |  Synchronous blocking call to payment gateway, no timeout/retry/circuit breaker  | PaymentService  | Addressed — circuit breaker, retry with backoff, and time limiter via Resilience4j (see Changes #5.1–#5.3)  |
 |  6  |  Notification is inline/blocking instead of async/event-driven  | NotificationService, OrderService  | Addressed — `@Async` with retry, off the request's critical path (see Changes #5.4)  |
 |  7  | One giant @Transactional method spanning inventory+payment+notification — no compensation/saga pattern   | OrderService.placeOrder  |  |
-|  8  |  No structured logging, no correlation IDs, no metrics/tracing  |  whole app |  |
+|  8  |  No structured logging, no correlation IDs, no metrics/tracing  |  whole app | Addressed — structured JSON logs with traceId/spanId, OTel tracing, and Prometheus metrics (see Changes #6.1–#6.3)  |
 |  9  |  No containerization (no Dockerfile)  | whole repo  | Addressed — multi-stage Dockerfile with non-root user and graceful shutdown (see Changes #3.1–#3.5)  |
 |  10  |  No CI/CD, no IaC  |  whole repo |  |
 |  11  |  Not idempotent — retrying a failed request double-charges/double-reserves  | OrderService.placeOrder  |  |
